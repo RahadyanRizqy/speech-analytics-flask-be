@@ -1,2 +1,5 @@
 .venv/
 .env
+uploads/
+transcribe.py
+transkrip.txt

@@ -1,6 +1,7 @@
 import os
 from flask import Flask, send_from_directory, request
 from dotenv import load_dotenv, dotenv_values
+import whisper
 
 load_dotenv()
 
@@ -15,11 +16,12 @@ def rootRoute():
     return {
         'status': {
             'code': 200,
-            'msg': 'Root route of Speech Analytics by Braincore.id, will be used for the FE'
-        }
+            'message': 'Success fetching the API',
+        },
+        'data': None
     }, 200
 
-@app.route('/process', methods=['GET', 'POST']) # Ajax
+@app.route('/transcribe', methods=['GET', 'POST']) # Ajax
 def processRoute():
         if request.method == "POST":
             if 'audio_file' not in request.files:
@@ -27,23 +29,35 @@ def processRoute():
                     'status': {
                         'code': 400,
                         'error': 'no_audio_file',
-                    }
+                    },
+                    'data': None
                 }, 400
             else:
+                audio_file = request.files['audio_file']
+
+                if audio_file:
+                    file_path = os.path.join(os.path.dirname(__file__), 'uploads', audio_file.filename)
+                    audio_file.save(file_path)
+                    model = whisper.load_model("medium")
+                    result = model.transcribe(file_path)
+                    transcribed_text = result['text']
                 return {
                     'status': {
                         'code': 201,
-                        'msg': 'success',
-                        'audio_file': request.files['audio_file'].filename
+                        'message': 'Success processing the audio',
+                    },
+                    'data': {
+                        'audio_file': request.files['audio_file'].filename,
+                        'result': transcribed_text
                     }
                 }
         else:
             return {
                 'status': {
                     'code': 200,
-                    'msg': 'Process route of Speech Analytics by Braincore.id to process the speech',
-                    'note': 'This is GET, the POST must have multipart/form-data'
-                }
+                    'message': 'Success fetching the API',
+                },
+                'data': None
             }, 200
 
 @app.route('/transcribes')
@@ -52,13 +66,14 @@ def transcribesRoute(id=""):
     returnedData = {
         'status': {
             'code': 200,
-            'msg': 'Transcribed from process, fetched from the database, for now it\'s still goign to be dummy',
-            'usage': 'Use transcribes/<id>',
+            'message': 'Success fetching the API',
+        },
+        'data': {
             'id': id
         }
     }
     if id == "":
-        returnedData['status'].pop('id', None)
+        returnedData['status']['data'] = None
     return returnedData, 200
     
 
@@ -67,7 +82,9 @@ def analyticsRoute():
     return {
         'status': {
             'code': 200,
-            'msg': 'This route has parameter queries, try to put on it',
+            'note': 'Success fetching the API',
+        },
+        'data': None if (len(request.args) == 0) else {
             'parameter': request.args
         }
     }
